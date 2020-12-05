@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Grammarly</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+      span{
+        background-color: tomato;
+      }
+      body{
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <center>
+      <br>
+      <h1>Spell Checker</h1><br>
+      <input id="inputfile" type="file" onchange="readFile();" style="padding-left: 75px;"> <br><br><br>
+      
+      <div id="filecontent" style="padding: 0px 25px">
+      </div>
+      <div id = "suggestion-list"></div>
+    </center>
+    <!-- <textarea id="filecontent" rows="10" cols="100">
+    </textarea><br>
+    
+    <button onclick="ReadFile()">Submit</button><br>
+  -->
+    
+    <script>
+      function readFile()
+      {
+        let reader = new FileReader();
+        let file = inputfile.files[0];
+        reader.readAsText(file);
+        reader.onload = function(){
+          let text = reader.result;
+          filecontent.value = text;
+          let formatted_text = text.replace(' ', '+');
+          const api_key = "1gVny1rfj02gy7kY";
+          let api_call = `https://api.textgears.com/spelling?key=${api_key}&text=${formatted_text}&language=en-GB`; 
+          $.ajax(
+            {
+              url : api_call,
+              method: 'GET',
+              success: (JSON) => {
+
+                //logic highlighting the wrong texts
+                let typos = JSON.response.errors;
+                for(let i = 0 ; i < typos.length ; i++)
+                {
+                  let added_offset = (i * 26);
+                  let id = "s" + i;
+                  text = [text.slice(0, typos[i].offset + added_offset), `<span class="typo">${typos[i].bad}</span>`, text.slice(typos[i].offset + typos[i].length + added_offset)].join('');
+                }
+                filecontent.innerHTML = text;
+
+
+                //logic for creating the suggestion list on rightclick
+                let typo_spans = document.querySelectorAll("span"); 
+                
+                typo_spans.forEach(
+                  (typo_span_i, indx) => {
+                    typo_span_i.addEventListener("contextmenu",
+                      (event) => {
+                        event.preventDefault();//for not letting default action of the right click work
+
+                        //logic for displaying the suggestion list
+                        let ans_div = document.getElementById('suggestion-list');
+                        positionDiv(ans_div,event.pageX + 15, event.pageY+15);
+                        list_content = "<ul>";
+                        for(let i = 0 ; i < JSON.response.errors[indx].better.length; i++)
+                        {
+                          let call_string = `correct(${indx}, ${i});`;
+                          list_content += `<li class = "correct-word" onclick = "${call_string}">${JSON.response.errors[indx].better[i]}</li>`;
+                        }
+                        list_content += "</ul>";
+                        ans_div.innerHTML = list_content;
+                        
+                        return false;//for not letting default action of the right click work
+                      }
+                    );
+                  }
+                );
+
+              },
+              error: (response) => {
+                alert("Error occured -File contents not right!!");
+                filecontent.innerHTML= "";
+              }
+            }
+          );
+
+          filecontent.innerHTML = text;//displays the text without highlight (while we get the response of api_call). Displays first becuase it will take time for the request to be processed as ajax is async  
+        }
+      }
+
+      //to change the position of div to where user clicked
+      function positionDiv(d, x_pos, y_pos){
+        d.style.position = "absolute";
+        d.style.left = x_pos+'px';
+        d.style.top = y_pos+'px';
+        d.style.backgroundColor = 'whitesmoke';
+      }
+
+      //to change the typo to corectselected word by user
+      function correct(span_indx, li_indx){
+        var span = document.querySelectorAll(".typo")[span_indx];
+        var li = document.querySelectorAll(".correct-word")[li_indx];
+        
+        //change the type with correct text
+        span.innerHTML = li.innerHTML;
+        span.style.backgroundColor = "white";
+        
+        //make list disappear
+        let ans_div = document.getElementById("suggestion-list");
+        ans_div.innerHTML= "";
+        ans_div.backgroundColor = null;
+      }
+      
+    </script>
+  </body>
+
+</html>
