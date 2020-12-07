@@ -1,3 +1,15 @@
+<!-- 
+    REFRENCES - 
+    1. For higlighting the text in a div
+    https://stackoverflow.com/questions/9216947/highlighting-text-under-div-tag
+    https://stackoverflow.com/questions/4364881/inserting-string-at-position-x-of-another-string
+
+    2. for showing a suggestion list on right click -
+    https://stackoverflow.com/questions/4235426/how-can-i-capture-the-right-click-event-in-javascript
+    https://stackoverflow.com/questions/6802956/how-to-position-a-div-in-a-specific-coordinates
+    https://stackoverflow.com/questions/16516690/right-click-coordinateshttps://stackoverflow.com/questions/48494416/get-child-element-from-event-target
+ -->
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -37,9 +49,11 @@
         reader.onload = function(){
           let text = reader.result;
           filecontent.value = text;
-          let formatted_text = text.replace(' ', '+');
+          let formatted_text = text.replace(/\s/g, '+');
+          //console.log(formatted_text);
           const api_key = "1gVny1rfj02gy7kY";
           let api_call = `https://api.textgears.com/spelling?key=${api_key}&text=${formatted_text}&language=en-GB`; 
+          //console.log(api_call);
           $.ajax(
             {
               url : api_call,
@@ -48,12 +62,17 @@
 
                 //logic highlighting the wrong texts
                 let typos = JSON.response.errors;
+                let unique_typos = new Set();//used for optimization
                 for(let i = 0 ; i < typos.length ; i++)
                 {
-                  let added_offset = (i * 26);
-                  let id = "s" + i;
-                  text = [text.slice(0, typos[i].offset + added_offset), `<span class="typo">${typos[i].bad}</span>`, text.slice(typos[i].offset + typos[i].length + added_offset)].join('');
+                  if(unique_typos.has(typos[i].bad))//optimied so that replace() is not called again and again for same typos
+                    continue;
+                  unique_typos.add(typos[i].bad);
+                  let regex = new RegExp(typos[i].bad, "g");
+                  //console.log(regex);
+                  text = text.replace(regex, `<span class="typo">${typos[i].bad}</span>`);
                 }
+                //console.log(text, typos.length);
                 filecontent.innerHTML = text;
 
 
@@ -123,3 +142,4 @@
   </body>
 
 </html>
+
